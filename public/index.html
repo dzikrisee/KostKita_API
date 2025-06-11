@@ -347,6 +347,91 @@
       </div>
     </div>
 
+    <!-- Modal -->
+    <div x-show="showModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in">
+        <h3 class="text-xl font-bold mb-4 text-gray-800" x-text="modalTitle"></h3>
+
+        <!-- Room Form -->
+        <form x-show="modalType === 'room'" @submit.prevent="saveRoom()">
+          <div class="space-y-4">
+            <input type="text" x-model="roomForm.nomor_kamar" placeholder="Nomor Kamar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <select x-model="roomForm.tipe_kamar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Tipe Kamar</option>
+              <option value="Standard">Standard</option>
+              <option value="Superior">Superior</option>
+              <option value="Deluxe">Deluxe</option>
+            </select>
+            <input type="number" x-model="roomForm.harga_bulanan" placeholder="Harga Bulanan" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="text" x-model="roomForm.fasilitas" placeholder="Fasilitas (pisahkan dengan koma)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="number" x-model="roomForm.lantai" placeholder="Lantai" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <select x-model="roomForm.status_kamar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Status</option>
+              <option value="Tersedia">Tersedia</option>
+              <option value="Terisi">Terisi</option>
+            </select>
+          </div>
+          <div class="flex space-x-3 mt-6">
+            <button type="button" @click="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">Batal</button>
+            <button type="submit" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-yellow-500">Simpan</button>
+          </div>
+        </form>
+
+        <!-- Tenant Form -->
+        <form x-show="modalType === 'tenant'" @submit.prevent="saveTenant()">
+          <div class="space-y-4">
+            <input type="text" x-model="tenantForm.nama" placeholder="Nama Lengkap" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="email" x-model="tenantForm.email" placeholder="Email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="tel" x-model="tenantForm.phone" placeholder="No. Telepon" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="text" x-model="tenantForm.pekerjaan" placeholder="Pekerjaan" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="text" x-model="tenantForm.emergency_contact" placeholder="Kontak Darurat" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="date" x-model="tenantForm.tanggal_masuk" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <select x-model="tenantForm.room_id" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+              <option value="">Pilih Kamar (Opsional)</option>
+              <template x-for="room in availableRooms" :key="room.id">
+                <option :value="room.id" x-text="room.nomor_kamar + ' - ' + room.tipe_kamar"></option>
+              </template>
+            </select>
+          </div>
+          <div class="flex space-x-3 mt-6">
+            <button type="button" @click="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">Batal</button>
+            <button type="submit" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-yellow-500">Simpan</button>
+          </div>
+        </form>
+
+        <!-- Payment Form -->
+        <form x-show="modalType === 'payment'" @submit.prevent="savePayment()">
+          <div class="space-y-4">
+            <select x-model="paymentForm.tenant_id" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Penghuni</option>
+              <template x-for="tenant in tenants" :key="tenant.id">
+                <option :value="tenant.id" x-text="tenant.nama"></option>
+              </template>
+            </select>
+            <select x-model="paymentForm.room_id" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Kamar</option>
+              <template x-for="room in rooms" :key="room.id">
+                <option :value="room.id" x-text="room.nomor_kamar + ' - ' + room.tipe_kamar"></option>
+              </template>
+            </select>
+            <input type="text" x-model="paymentForm.bulan_tahun" placeholder="Bulan/Tahun (contoh: Januari 2024)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="number" x-model="paymentForm.jumlah_bayar" placeholder="Jumlah Bayar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="date" x-model="paymentForm.tanggal_bayar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <select x-model="paymentForm.status_pembayaran" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Status</option>
+              <option value="Lunas">Lunas</option>
+              <option value="Belum Lunas">Belum Lunas</option>
+            </select>
+            <input type="number" x-model="paymentForm.denda" placeholder="Denda (jika ada)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" />
+          </div>
+          <div class="flex space-x-3 mt-6">
+            <button type="button" @click="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">Batal
+            <button type="submit" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <script>
       function kostKitaApp() {
         return {
