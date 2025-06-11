@@ -13,7 +13,7 @@ const paymentsRouter = require('./routes/payments');
 const app = express();
 
 // Railway environment configuration
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const RAILWAY_STATIC_URL = process.env.RAILWAY_STATIC_URL;
 const RAILWAY_PUBLIC_DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN;
