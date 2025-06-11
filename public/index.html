@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KostKita - Management Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'primary': '#F5B041',
+              'secondary': '#F8F5F2',
+              'accent': '#99846A',
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-in-out',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      [x-cloak] {
+        display: none !important;
+      }
+      .glass {
+        backdrop-filter: blur(10px);
+        background: rgba(255, 255, 255, 0.1);
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-fade-in {
+        animation: fadeIn 0.3s ease-in-out;
+      }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-secondary to-orange-50 min-h-screen" x-data="kostKitaApp()" x-init="init()">
+    <!-- Login Modal -->
+    <div x-show="!isAuthenticated" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-2xl p-8 w-96 max-w-[90%] shadow-2xl animate-fade-in">
+        <div class="text-center mb-6">
+          <i class="fas fa-home text-4xl text-primary mb-4"></i>
+          <h2 class="text-2xl font-bold text-gray-800">KostKita Login</h2>
+          <p class="text-gray-600">Masuk ke dashboard manajemen</p>
+        </div>
+        <form @submit.prevent="login()">
+          <div class="mb-4">
+            <input type="text" x-model="loginForm.username" placeholder="Username atau Email" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" />
+          </div>
+          <div class="mb-6">
+            <input type="password" x-model="loginForm.password" placeholder="Password" class="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent" />
+          </div>
+          <button type="submit" :disabled="loading" class="w-full bg-primary text-white py-3 rounded-lg hover:bg-yellow-500 disabled:opacity-50">
+            <span x-show="!loading">Masuk</span>
+            <span x-show="loading">Loading...</span>
+          </button>
+        </form>
+        <div x-show="error" class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm" x-text="error"></div>
+      </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div x-show="isAuthenticated" x-cloak class="flex h-screen" x-data="{ sidebarOpen: false }">
+      <!-- Mobile Menu Button -->
+      <button 
+        @click="sidebarOpen = !sidebarOpen"
+        class="fixed top-4 left-4 z-50 lg:hidden bg-primary text-white p-2 rounded-lg shadow-lg"
+      >
+        <i class="fas fa-bars" x-show="!sidebarOpen"></i>
+        <i class="fas fa-times" x-show="sidebarOpen"></i>
+      </button>
+
+      <!-- Mobile Overlay -->
+      <div 
+        x-show="sidebarOpen" 
+        @click="sidebarOpen = false"
+        class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+        x-cloak
+      ></div>
+
+      <!-- Sidebar -->
+      <div 
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+        class="fixed lg:static lg:translate-x-0 w-64 bg-white shadow-lg z-40 transition-transform duration-300 ease-in-out h-full"
+      >
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex items-center">
+            <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mr-3">
+              <i class="fas fa-home text-white text-lg"></i>
+            </div>
+            <h1 class="text-xl font-bold text-gray-800">KostKita</h1>
+          </div>
+          <p class="text-sm text-accent mt-1" x-text="user?.full_name"></p>
+        </div>
+
+        <nav class="mt-6">
+          <a
+            @click="activeTab = 'dashboard'; sidebarOpen = false"
+            :class="activeTab === 'dashboard' ? 'bg-primary bg-opacity-10 text-primary border-r-4 border-primary' : 'text-accent hover:bg-secondary'"
+            class="flex items-center px-6 py-3 cursor-pointer transition-colors"
+          >
+            <i class="fas fa-chart-pie mr-3"></i>
+            Dashboard
+          </a>
+          <a 
+            @click="activeTab = 'rooms'; sidebarOpen = false" 
+            :class="activeTab === 'rooms' ? 'bg-primary bg-opacity-10 text-primary border-r-4 border-primary' : 'text-accent hover:bg-secondary'" 
+            class="flex items-center px-6 py-3 cursor-pointer transition-colors"
+          >
+            <i class="fas fa-bed mr-3"></i>
+            Kelola Kamar
+          </a>
+          <a
+            @click="activeTab = 'tenants'; sidebarOpen = false"
+            :class="activeTab === 'tenants' ? 'bg-primary bg-opacity-10 text-primary border-r-4 border-primary' : 'text-accent hover:bg-secondary'"
+            class="flex items-center px-6 py-3 cursor-pointer transition-colors"
+          >
+            <i class="fas fa-users mr-3"></i>
+            Kelola Penghuni
+          </a>
+          <a
+            @click="activeTab = 'payments'; sidebarOpen = false"
+            :class="activeTab === 'payments' ? 'bg-primary bg-opacity-10 text-primary border-r-4 border-primary' : 'text-accent hover:bg-secondary'"
+            class="flex items-center px-6 py-3 cursor-pointer transition-colors"
+          >
+            <i class="fas fa-money-bill mr-3"></i>
+            Pembayaran
+          </a>
+        </nav>
+
+        <div class="absolute bottom-6 left-6">
+          <button @click="logout()" class="flex items-center text-red-600 hover:text-red-700">
+            <i class="fas fa-sign-out-alt mr-2"></i>
+            Logout
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Content -->
+      <div class="flex-1 overflow-auto lg:ml-0">
+        <!-- Header for mobile -->
+        <div class="lg:hidden bg-white shadow-sm p-4 pl-16">
+          <h1 class="text-lg font-semibold text-gray-800">KostKita Dashboard</h1>
+        </div>
+
+        <!-- Error Display -->
+        <div x-show="error" class="m-4 lg:m-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+          <div class="flex justify-between items-center">
+            <span x-text="error"></span>
+            <button @click="error = ''" class="text-red-700 hover:text-red-900">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div x-show="loading" class="m-4 lg:m-6 p-4 bg-blue-100 text-blue-700 rounded-lg">
+          <i class="fas fa-spinner fa-spin mr-2"></i>
+          Memuat data...
+        </div>
+        
+        <!-- Dashboard Tab -->
+        <div x-show="activeTab === 'dashboard'" class="p-4 lg:p-6">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 lg:gap-6 mb-8">
+            <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-primary">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-accent">Total Kamar</p>
+                  <p class="text-2xl font-bold text-primary" x-text="rooms.length"></p>
+                </div>
+                <i class="fas fa-bed text-3xl text-primary opacity-20"></i>
+              </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-green-500">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-accent">Total Penghuni</p>
+                  <p class="text-2xl font-bold text-green-600" x-text="tenants.length"></p>
+                </div>
+                <i class="fas fa-users text-3xl text-green-200"></i>
+              </div>
+            </div>
+            <div class="bg-white rounded-xl p-6 shadow-lg border-l-4 border-blue-500">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-accent">Kamar Tersedia</p>
+                  <p class="text-2xl font-bold text-blue-600" x-text="rooms.filter(r => r.status_kamar === 'Tersedia').length"></p>
+                </div>
+                <i class="fas fa-check-circle text-3xl text-blue-200"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rooms Tab -->
+        <div x-show="activeTab === 'rooms'" class="p-4 lg:p-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h2 class="text-2xl font-bold text-gray-800">Kelola Kamar</h2>
+            <button @click="openModal('room')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto">
+              <i class="fas fa-plus mr-2"></i>Tambah Kamar
+            </button>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead class="bg-secondary">
+                  <tr>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">No. Kamar</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Tipe</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Harga</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Lantai</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Status</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <template x-for="room in rooms" :key="room.id">
+                    <tr class="hover:bg-secondary">
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap font-medium" x-text="room.nomor_kamar"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap" x-text="room.tipe_kamar"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap text-sm" x-text="'Rp ' + room.harga_bulanan.toLocaleString()"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap" x-text="room.lantai"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap">
+                        <span :class="room.status_kamar === 'Tersedia' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2 py-1 text-xs rounded-full" x-text="room.status_kamar"></span>
+                      </td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap space-x-2">
+                        <button @click="editRoom(room)" class="text-primary hover:text-yellow-600">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button @click="deleteRoom(room.id)" class="text-red-600 hover:text-red-900">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tenants Tab -->
+        <div x-show="activeTab === 'tenants'" class="p-4 lg:p-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h2 class="text-2xl font-bold text-gray-800">Kelola Penghuni</h2>
+            <button @click="openModal('tenant')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto">
+              <i class="fas fa-plus mr-2"></i>Tambah Penghuni
+            </button>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead class="bg-secondary">
+                  <tr>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Nama</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Email</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">No. Kamar</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Tanggal Masuk</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <template x-for="tenant in tenants" :key="tenant.id">
+                    <tr class="hover:bg-secondary">
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap font-medium" x-text="tenant.nama"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap text-sm" x-text="tenant.email"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap" x-text="tenant.nomor_kamar || '-'"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap text-sm" x-text="new Date(tenant.tanggal_masuk).toLocaleDateString('id-ID')"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap space-x-2">
+                        <button @click="editTenant(tenant)" class="text-primary hover:text-yellow-600">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button @click="deleteTenant(tenant.id)" class="text-red-600 hover:text-red-900">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payments Tab -->
+        <div x-show="activeTab === 'payments'" class="p-4 lg:p-6">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h2 class="text-2xl font-bold text-gray-800">Pembayaran</h2>
+            <button @click="openModal('payment')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto">
+              <i class="fas fa-plus mr-2"></i>Tambah Pembayaran
+            </button>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="min-w-full">
+                <thead class="bg-secondary">
+                  <tr>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Penghuni</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Bulan/Tahun</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Jumlah</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Status</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Tanggal</th>
+                    <th class="px-3 lg:px-6 py-3 text-left text-xs font-medium text-accent uppercase">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200">
+                  <template x-for="payment in payments" :key="payment.id">
+                    <tr class="hover:bg-secondary">
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap font-medium" x-text="getTenantName(payment.tenant_id)"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap text-sm" x-text="payment.bulan_tahun"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap text-sm" x-text="'Rp ' + payment.jumlah_bayar.toLocaleString()"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap">
+                        <span :class="payment.status_pembayaran === 'Lunas' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'" class="px-2 py-1 text-xs rounded-full" x-text="payment.status_pembayaran"></span>
+                      </td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap text-sm" x-text="new Date(payment.tanggal_bayar).toLocaleDateString('id-ID')"></td>
+                      <td class="px-3 lg:px-6 py-4 whitespace-nowrap space-x-2">
+                        <button @click="editPayment(payment)" class="text-primary hover:text-yellow-600">
+                          <i class="fas fa-edit"></i>
+                        </button>
+                        <button @click="deletePayment(payment.id)" class="text-red-600 hover:text-red-900">
+                          <i class="fas fa-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div x-show="showModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-fade-in">
+        <h3 class="text-xl font-bold mb-4 text-gray-800" x-text="modalTitle"></h3>
+
+        <!-- Room Form -->
+        <form x-show="modalType === 'room'" @submit.prevent="saveRoom()">
+          <div class="space-y-4">
+            <input type="text" x-model="roomForm.nomor_kamar" placeholder="Nomor Kamar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <select x-model="roomForm.tipe_kamar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Tipe Kamar</option>
+              <option value="Standard">Standard</option>
+              <option value="Superior">Superior</option>
+              <option value="Deluxe">Deluxe</option>
+            </select>
+            <input type="number" x-model="roomForm.harga_bulanan" placeholder="Harga Bulanan" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="text" x-model="roomForm.fasilitas" placeholder="Fasilitas (pisahkan dengan koma)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="number" x-model="roomForm.lantai" placeholder="Lantai" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <select x-model="roomForm.status_kamar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Status</option>
+              <option value="Tersedia">Tersedia</option>
+              <option value="Terisi">Terisi</option>
+            </select>
+          </div>
+          <div class="flex space-x-3 mt-6">
+            <button type="button" @click="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">Batal</button>
+            <button type="submit" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-yellow-500">Simpan</button>
+          </div>
+        </form>
+
+        <!-- Tenant Form -->
+        <form x-show="modalType === 'tenant'" @submit.prevent="saveTenant()">
+          <div class="space-y-4">
+            <input type="text" x-model="tenantForm.nama" placeholder="Nama Lengkap" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="email" x-model="tenantForm.email" placeholder="Email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="tel" x-model="tenantForm.phone" placeholder="No. Telepon" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="text" x-model="tenantForm.pekerjaan" placeholder="Pekerjaan" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="text" x-model="tenantForm.emergency_contact" placeholder="Kontak Darurat" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="date" x-model="tenantForm.tanggal_masuk" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <select x-model="tenantForm.room_id" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary">
+              <option value="">Pilih Kamar (Opsional)</option>
+              <template x-for="room in availableRooms" :key="room.id">
+                <option :value="room.id" x-text="room.nomor_kamar + ' - ' + room.tipe_kamar"></option>
+              </template>
+            </select>
+          </div>
+          <div class="flex space-x-3 mt-6">
+            <button type="button" @click="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">Batal</button>
+            <button type="submit" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-yellow-500">Simpan</button>
+          </div>
+        </form>
+
+        <!-- Payment Form -->
+        <form x-show="modalType === 'payment'" @submit.prevent="savePayment()">
+          <div class="space-y-4">
+            <select x-model="paymentForm.tenant_id" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Penghuni</option>
+              <template x-for="tenant in tenants" :key="tenant.id">
+                <option :value="tenant.id" x-text="tenant.nama"></option>
+              </template>
+            </select>
+            <select x-model="paymentForm.room_id" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Kamar</option>
+              <template x-for="room in rooms" :key="room.id">
+                <option :value="room.id" x-text="room.nomor_kamar + ' - ' + room.tipe_kamar"></option>
+              </template>
+            </select>
+            <input type="text" x-model="paymentForm.bulan_tahun" placeholder="Bulan/Tahun (contoh: Januari 2024)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="number" x-model="paymentForm.jumlah_bayar" placeholder="Jumlah Bayar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <input type="date" x-model="paymentForm.tanggal_bayar" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required />
+            <select x-model="paymentForm.status_pembayaran" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" required>
+              <option value="">Pilih Status</option>
+              <option value="Lunas">Lunas</option>
+              <option value="Belum Lunas">Belum Lunas</option>
+            </select>
+            <input type="number" x-model="paymentForm.denda" placeholder="Denda (jika ada)" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary" />
+          </div>
+          <div class="flex space-x-3 mt-6">
+            <button type="button" @click="closeModal()" class="flex-1 bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400">Batal
+            <button type="submit" class="flex-1 bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      function kostKitaApp() {
+        return {
+          // Base API URL - GANTI SESUAI URL API ANDA
+          apiUrl: 'http://localhost:3000/api',
+
+          // Auth
+          isAuthenticated: false,
+          token: null,
+          user: null,
+
+          // UI State
+          activeTab: 'dashboard',
+          showModal: false,
+          modalType: '',
+          modalTitle: '',
+          loading: false,
+          error: '',
+
+          // Data
+          rooms: [],
+          tenants: [],
+          payments: [],
+
+          // Forms
+          loginForm: {
+            username: '',
+            password: '',
+          },
+          roomForm: {
+            nomor_kamar: '',
+            tipe_kamar: '',
+            harga_bulanan: '',
+            fasilitas: '',
+            status_kamar: '',
+            lantai: '',
+          },
+          tenantForm: {
+            nama: '',
+            email: '',
+            phone: '',
+            pekerjaan: '',
+            emergency_contact: '',
+            tanggal_masuk: '',
+            room_id: '',
+          },
+          paymentForm: {
+            tenant_id: '',
+            room_id: '',
+            bulan_tahun: '',
+            jumlah_bayar: '',
+            tanggal_bayar: '',
+            status_pembayaran: '',
+            denda: 0,
+          },
+
+          // Editing states
+          editingRoom: null,
+          editingTenant: null,
+          editingPayment: null,
+
+          init() {
+            this.token = localStorage.getItem('kostkita_token');
+            if (this.token) {
+              this.isAuthenticated = true;
+              this.loadData();
+            }
+          },
+
+          async apiCall(endpoint, options = {}) {
+            const url = `${this.apiUrl}${endpoint}`;
+            const config = {
+              headers: {
+                'Content-Type': 'application/json',
+                ...(this.token && { Authorization: `Bearer ${this.token}` }),
+              },
+              ...options,
+            };
+
+            if (config.body && typeof config.body === 'object') {
+              config.body = JSON.stringify(config.body);
+            }
+
+            try {
+              const response = await fetch(url, config);
+              const data = await response.json();
+
+              if (!response.ok) {
+                throw new Error(data.error || 'Terjadi kesalahan');
+              }
+
+              return data;
+            } catch (error) {
+              throw new Error(error.message || 'Gagal terhubung ke server');
+            }
+          },
+
+          async login() {
+            this.loading = true;
+            this.error = '';
+
+            try {
+              const response = await this.apiCall('/auth/login', {
+                method: 'POST',
+                body: this.loginForm,
+              });
+
+              this.token = response.token;
+              this.user = response.user;
+              this.isAuthenticated = true;
+
+              localStorage.setItem('kostkita_token', this.token);
+              await this.loadData();
+            } catch (error) {
+              this.error = error.message;
+            } finally {
+              this.loading = false;
+            }
+          },
+
+          logout() {
+            this.isAuthenticated = false;
+            this.token = null;
+            this.user = null;
+            this.activeTab = 'dashboard';
+            localStorage.removeItem('kostkita_token');
+            this.resetForms();
+            this.error = '';
+
+            // Reset all data
+            this.rooms = [];
+            this.tenants = [];
+            this.payments = [];
+
+            // Reset login form
+            this.loginForm = {
+              username: '',
+              password: '',
+            };
+          },
+
+          async loadData() {
+            try {
+              this.loading = true;
+              this.error = '';
+
+              const [roomsData, tenantsData, paymentsData] = await Promise.all([this.apiCall('/rooms'), this.apiCall('/tenants'), this.apiCall('/payments')]);
+
+              this.rooms = Array.isArray(roomsData) ? roomsData : [];
+              this.tenants = Array.isArray(tenantsData) ? tenantsData : [];
+              this.payments = Array.isArray(paymentsData) ? paymentsData : [];
+
+              console.log('Data loaded:', {
+                rooms: this.rooms.length,
+                tenants: this.tenants.length,
+                payments: this.payments.length,
+              });
+            } catch (error) {
+              console.error('Load data error:', error);
+              this.error = `Gagal memuat data: ${error.message}`;
+
+              // Set empty arrays as fallback
+              this.rooms = [];
+              this.tenants = [];
+              this.payments = [];
+            } finally {
+              this.loading = false;
+            }
+          },
+
+          // Modal functions
+          openModal(type) {
+            this.modalType = type;
+            this.showModal = true;
+
+            const titles = {
+              room: 'Tambah Kamar',
+              tenant: 'Tambah Penghuni',
+              payment: 'Tambah Pembayaran',
+            };
+            this.modalTitle = titles[type];
+          },
+
+          closeModal() {
+            this.showModal = false;
+            this.resetForms();
+            this.editingRoom = null;
+            this.editingTenant = null;
+            this.editingPayment = null;
+          },
+
+          resetForms() {
+            this.roomForm = {
+              nomor_kamar: '',
+              tipe_kamar: '',
+              harga_bulanan: '',
+              fasilitas: '',
+              status_kamar: '',
+              lantai: '',
+            };
+            this.tenantForm = {
+              nama: '',
+              email: '',
+              phone: '',
+              pekerjaan: '',
+              emergency_contact: '',
+              tanggal_masuk: '',
+              room_id: '',
+            };
+            this.paymentForm = {
+              tenant_id: '',
+              room_id: '',
+              bulan_tahun: '',
+              jumlah_bayar: '',
+              tanggal_bayar: '',
+              status_pembayaran: '',
+              denda: 0,
+            };
+          },
+
+          // Room functions
+          async saveRoom() {
+            try {
+              const roomData = {
+                ...this.roomForm,
+                id: this.editingRoom?.id || this.generateId(),
+                harga_bulanan: parseInt(this.roomForm.harga_bulanan),
+                lantai: parseInt(this.roomForm.lantai),
+              };
+
+              if (this.editingRoom) {
+                await this.apiCall(`/rooms/${this.editingRoom.id}`, {
+                  method: 'PUT',
+                  body: roomData,
+                });
+              } else {
+                await this.apiCall('/rooms', {
+                  method: 'POST',
+                  body: roomData,
+                });
+              }
+
+              await this.loadData();
+              this.closeModal();
+            } catch (error) {
+              this.error = error.message;
+            }
+          },
+
+          editRoom(room) {
+            this.editingRoom = room;
+            this.roomForm = { ...room };
+            this.modalType = 'room';
+            this.modalTitle = 'Edit Kamar';
+            this.showModal = true;
+          },
+
+          async deleteRoom(roomId) {
+            if (!confirm('Yakin ingin menghapus kamar ini?')) return;
+
+            try {
+              await this.apiCall(`/rooms/${roomId}`, { method: 'DELETE' });
+              await this.loadData();
+            } catch (error) {
+              this.error = error.message;
+            }
+          },
+
+          // Tenant functions
+          async saveTenant() {
+            try {
+              const tenantData = {
+                ...this.tenantForm,
+                id: this.editingTenant?.id || this.generateId(),
+                tanggal_masuk: new Date(this.tenantForm.tanggal_masuk).getTime(),
+              };
+
+              if (this.editingTenant) {
+                await this.apiCall(`/tenants/${this.editingTenant.id}`, {
+                  method: 'PUT',
+                  body: tenantData,
+                });
+              } else {
+                await this.apiCall('/tenants', {
+                  method: 'POST',
+                  body: tenantData,
+                });
+              }
+
+              await this.loadData();
+              this.closeModal();
+            } catch (error) {
+              this.error = error.message;
+            }
+          },
+
+          editTenant(tenant) {
+            this.editingTenant = tenant;
+            this.tenantForm = {
+              ...tenant,
+              tanggal_masuk: new Date(tenant.tanggal_masuk).toISOString().split('T')[0],
+            };
+            this.modalType = 'tenant';
+            this.modalTitle = 'Edit Penghuni';
+            this.showModal = true;
+          },
+
+          async deleteTenant(tenantId) {
+            if (!confirm('Yakin ingin menghapus Penghuni ini?')) return;
+
+            try {
+              await this.apiCall(`/tenants/${tenantId}`, { method: 'DELETE' });
+              await this.loadData();
+            } catch (error) {
+              this.error = error.message;
+            }
+          },
+
+          // Payment functions
+          async savePayment() {
+            try {
+              const paymentData = {
+                ...this.paymentForm,
+                id: this.editingPayment?.id || this.generateId(),
+                jumlah_bayar: parseInt(this.paymentForm.jumlah_bayar),
+                denda: parseInt(this.paymentForm.denda) || 0,
+                tanggal_bayar: new Date(this.paymentForm.tanggal_bayar).getTime(),
+              };
+
+              if (this.editingPayment) {
+                await this.apiCall(`/payments/${this.editingPayment.id}`, {
+                  method: 'PUT',
+                  body: paymentData,
+                });
+              } else {
+                await this.apiCall('/payments', {
+                  method: 'POST',
+                  body: paymentData,
+                });
+              }
+
+              await this.loadData();
+              this.closeModal();
+            } catch (error) {
+              this.error = error.message;
+            }
+          },
+
+          editPayment(payment) {
+            this.editingPayment = payment;
+            this.paymentForm = {
+              ...payment,
+              tanggal_bayar: new Date(payment.tanggal_bayar).toISOString().split('T')[0],
+            };
+            this.modalType = 'payment';
+            this.modalTitle = 'Edit Pembayaran';
+            this.showModal = true;
+          },
+
+          async deletePayment(paymentId) {
+            if (!confirm('Yakin ingin menghapus pembayaran ini?')) return;
+
+            try {
+              await this.apiCall(`/payments/${paymentId}`, { method: 'DELETE' });
+              await this.loadData();
+            } catch (error) {
+              this.error = error.message;
+            }
+          },
+
+          // Utility functions
+          generateId() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+              var r = (Math.random() * 16) | 0,
+                v = c == 'x' ? r : (r & 0x3) | 0x8;
+              return v.toString(16);
+            });
+          },
+
+          getTenantName(tenantId) {
+            const tenant = this.tenants.find((t) => t.id === tenantId);
+            return tenant ? tenant.nama : 'Unknown';
+          },
+
+          get availableRooms() {
+            return this.rooms.filter((room) => room.status_kamar === 'Tersedia');
+          },
+        };
+      }
+    </script>
+  </body>
+</html>
