@@ -12,9 +12,9 @@
         theme: {
           extend: {
             colors: {
-              'primary': '#F5B041',
-              'secondary': '#F8F5F2',
-              'accent': '#99846A',
+              primary: '#F5B041',
+              secondary: '#F8F5F2',
+              accent: '#99846A',
             },
             animation: {
               'fade-in': 'fadeIn 0.3s ease-in-out',
@@ -77,7 +77,7 @@
           </button>
         </form>
         <div x-show="error" class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg text-sm" x-text="error"></div>
-        
+
         <!-- Demo credentials info -->
         <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
           <p class="text-blue-800 font-medium">Demo Login:</p>
@@ -90,36 +90,24 @@
     <!-- Main Dashboard -->
     <div x-show="isAuthenticated" x-cloak class="flex h-screen" x-data="{ sidebarOpen: false }">
       <!-- Mobile Menu Button -->
-      <button 
-        @click="sidebarOpen = !sidebarOpen"
-        class="fixed top-4 left-4 z-50 lg:hidden bg-primary text-white p-2 rounded-lg shadow-lg"
-      >
+      <button @click="sidebarOpen = !sidebarOpen" class="fixed top-4 left-4 z-50 lg:hidden bg-primary text-white p-2 rounded-lg shadow-lg">
         <i class="fas fa-bars" x-show="!sidebarOpen"></i>
         <i class="fas fa-times" x-show="sidebarOpen"></i>
       </button>
 
       <!-- Mobile Overlay -->
-      <div 
-        x-show="sidebarOpen" 
-        @click="sidebarOpen = false"
-        class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-        x-cloak
-      ></div>
+      <div x-show="sidebarOpen" @click="sidebarOpen = false" class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" x-cloak></div>
 
       <!-- Sidebar -->
-      <div 
-        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
-        class="fixed lg:static lg:translate-x-0 w-64 bg-white shadow-lg z-40 transition-transform duration-300 ease-in-out h-full"
-      >
-        <div class="p-6 border-b border-gray-200">
+      <div :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'" class="fixed lg:static lg:translate-x-0 w-64 bg-white shadow-lg z-40 transition-transform duration-300 ease-in-out h-full">
+        <div class="p-6 mt-10 border-b border-gray-200">
           <div class="flex items-center">
             <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center mr-3">
-              <i class="fas fa-home text-white text-lg"></i>
+              <img src="/kostkita.png" alt="KostKita Logo" class="w-8 h-8 object-contain" onerror="console.log('Logo gagal dimuat dari /kostkita.png'); this.style.display='none'; this.nextElementSibling.style.display='flex';" />
             </div>
             <h1 class="text-xl font-bold text-gray-800">KostKita</h1>
           </div>
           <p class="text-sm text-accent mt-1" x-text="user?.full_name"></p>
-          <p class="text-xs text-gray-400" x-text="'🚂 Railway'"></p>
         </div>
 
         <nav class="mt-6">
@@ -131,9 +119,9 @@
             <i class="fas fa-chart-pie mr-3"></i>
             Dashboard
           </a>
-          <a 
-            @click="activeTab = 'rooms'; sidebarOpen = false" 
-            :class="activeTab === 'rooms' ? 'bg-primary bg-opacity-10 text-primary border-r-4 border-primary' : 'text-accent hover:bg-secondary'" 
+          <a
+            @click="activeTab = 'rooms'; sidebarOpen = false"
+            :class="activeTab === 'rooms' ? 'bg-primary bg-opacity-10 text-primary border-r-4 border-primary' : 'text-accent hover:bg-secondary'"
             class="flex items-center px-6 py-3 cursor-pointer transition-colors"
           >
             <i class="fas fa-bed mr-3"></i>
@@ -169,7 +157,8 @@
       <div class="flex-1 overflow-auto lg:ml-0">
         <!-- Header for mobile -->
         <div class="lg:hidden bg-white shadow-sm p-4 pl-16">
-          <h1 class="text-lg font-semibold text-gray-800">KostKita Dashboard</h1>
+          <img src="/kostkita.png" alt="KostKita Logo" class="w-8 h-8 object-contain" onerror="console.log('Logo gagal dimuat dari /kostkita.png'); this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+          <h1 class="text-lg font-bold text-gray-800">KostKita Dashboard</h1>
         </div>
 
         <!-- Error Display -->
@@ -187,7 +176,7 @@
           <i class="fas fa-spinner fa-spin mr-2"></i>
           Memuat data...
         </div>
-        
+
         <!-- Dashboard Tab -->
         <div x-show="activeTab === 'dashboard'" class="p-4 lg:p-6">
           <h2 class="text-2xl font-bold text-gray-800 mb-6">Dashboard</h2>
@@ -226,9 +215,7 @@
         <div x-show="activeTab === 'rooms'" class="p-4 lg:p-6">
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h2 class="text-2xl font-bold text-gray-800">Kelola Kamar</h2>
-            <button @click="openModal('room')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto">
-              <i class="fas fa-plus mr-2"></i>Tambah Kamar
-            </button>
+            <button @click="openModal('room')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto"><i class="fas fa-plus mr-2"></i>Tambah Kamar</button>
           </div>
 
           <div class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -274,9 +261,7 @@
         <div x-show="activeTab === 'tenants'" class="p-4 lg:p-6">
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h2 class="text-2xl font-bold text-gray-800">Kelola Penghuni</h2>
-            <button @click="openModal('tenant')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto">
-              <i class="fas fa-plus mr-2"></i>Tambah Penghuni
-            </button>
+            <button @click="openModal('tenant')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto"><i class="fas fa-plus mr-2"></i>Tambah Penghuni</button>
           </div>
 
           <div class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -318,9 +303,7 @@
         <div x-show="activeTab === 'payments'" class="p-4 lg:p-6">
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
             <h2 class="text-2xl font-bold text-gray-800">Pembayaran</h2>
-            <button @click="openModal('payment')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto">
-              <i class="fas fa-plus mr-2"></i>Tambah Pembayaran
-            </button>
+            <button @click="openModal('payment')" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-yellow-500 w-full sm:w-auto"><i class="fas fa-plus mr-2"></i>Tambah Pembayaran</button>
           </div>
 
           <div class="bg-white rounded-xl shadow-lg overflow-hidden">
@@ -457,17 +440,17 @@
             const hostname = window.location.hostname;
             const protocol = window.location.protocol;
             const port = window.location.port;
-            
+
             // Jika di Railway production
             if (hostname.includes('railway.app') || hostname.includes('up.railway.app')) {
               return `${protocol}//${hostname}/api`;
             }
-            
+
             // Jika di localhost
             if (hostname === 'localhost' || hostname === '127.0.0.1') {
               return 'http://localhost:3000/api';
             }
-            
+
             // Default: same origin
             return `${protocol}//${hostname}${port ? ':' + port : ''}/api`;
           })(),
@@ -532,10 +515,10 @@
 
           async init() {
             console.log('🚂 Railway API URL:', this.apiUrl);
-            
+
             // Test connection
             await this.testConnection();
-            
+
             this.token = localStorage.getItem('kostkita_token');
             if (this.token) {
               this.isAuthenticated = true;
@@ -547,7 +530,7 @@
             try {
               const healthUrl = this.apiUrl.replace('/api', '/health');
               const response = await fetch(healthUrl);
-              
+
               if (response.ok) {
                 const data = await response.json();
                 console.log('✅ Railway connection OK:', data);
@@ -599,7 +582,7 @@
 
             try {
               console.log('🚂 Attempting Railway login...');
-              
+
               const response = await this.apiCall('/auth/login', {
                 method: 'POST',
                 body: this.loginForm,
@@ -649,11 +632,7 @@
 
               console.log('🚂 Loading Railway data...');
 
-              const [roomsData, tenantsData, paymentsData] = await Promise.all([
-                this.apiCall('/rooms'), 
-                this.apiCall('/tenants'), 
-                this.apiCall('/payments')
-              ]);
+              const [roomsData, tenantsData, paymentsData] = await Promise.all([this.apiCall('/rooms'), this.apiCall('/tenants'), this.apiCall('/payments')]);
 
               this.rooms = Array.isArray(roomsData) ? roomsData : [];
               this.tenants = Array.isArray(tenantsData) ? tenantsData : [];

@@ -13,7 +13,7 @@ const db = new sqlite3.Database(path.join(__dirname, 'kostkita.db'), (err) => {
 
 // Create tables with updated schema
 db.serialize(() => {
-  // Users table for authentication
+  // Users table dengan kolom profile_photo dan updated_at
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -22,9 +22,38 @@ db.serialize(() => {
       password TEXT NOT NULL,
       full_name TEXT NOT NULL,
       role TEXT DEFAULT 'admin',
-      created_at INTEGER NOT NULL
+      profile_photo TEXT DEFAULT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER DEFAULT NULL
     )
   `);
+
+  // Tambah kolom profile_photo dan updated_at jika belum ada (untuk migration)
+  db.run(
+    `
+    ALTER TABLE users ADD COLUMN profile_photo TEXT DEFAULT NULL
+  `,
+    (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.log('Column profile_photo might already exist');
+      } else {
+        console.log('Added profile_photo column');
+      }
+    },
+  );
+
+  db.run(
+    `
+    ALTER TABLE users ADD COLUMN updated_at INTEGER DEFAULT NULL
+  `,
+    (err) => {
+      if (err && !err.message.includes('duplicate column')) {
+        console.log('Column updated_at might already exist');
+      } else {
+        console.log('Added updated_at column');
+      }
+    },
+  );
 
   // Rooms table (unchanged)
   db.run(`
