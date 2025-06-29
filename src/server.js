@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
-const { authenticateToken } = require('./middleware/auth');
 
 // Import routes
 const authRouter = require('./routes/auth');
@@ -10,75 +9,76 @@ const tenantsRouter = require('./routes/tenants');
 const roomsRouter = require('./routes/rooms');
 const paymentsRouter = require('./routes/payments');
 
+// Import middleware
+const { authenticateToken } = require('./middleware/auth');
+
+// Import database (this will create tables automatically)
+const db = require('./database/database');
+
 const app = express();
-
-// Railway environment configuration
 const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'development';
-const RAILWAY_STATIC_URL = process.env.RAILWAY_STATIC_URL;
-const RAILWAY_PUBLIC_DOMAIN = process.env.RAILWAY_PUBLIC_DOMAIN;
+const NODE_ENV = process.env.NODE_ENV || 'production';
+const BASE_URL = process.env.RAILWAY_STATIC_URL || `http://localhost:${PORT}`;
 
-// Determine the base URL
-const getBaseUrl = () => {
-  if (RAILWAY_PUBLIC_DOMAIN) {
-    return `https://${RAILWAY_PUBLIC_DOMAIN}`;
-  }
-  if (RAILWAY_STATIC_URL) {
-    return RAILWAY_STATIC_URL;
-  }
-  return `http://localhost:${PORT}`;
+console.log('🚂 KostKita API Starting...');
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+console.log(`🌍 Environment: ${NODE_ENV}`);
+console.log(`📍 Base URL: ${BASE_URL}`);
+console.log(`🚪 Port: ${PORT}`);
+console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+
+// CORS configuration
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+
+    // Allow all origins in development/production for now
+    callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200,
 };
 
-const BASE_URL = getBaseUrl();
+// Middleware
+app.use(cors(corsOptions));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
-console.log('🚂 Railway Configuration:');
-console.log(`   NODE_ENV: ${NODE_ENV}`);
-console.log(`   PORT: ${PORT}`);
-console.log(`   BASE_URL: ${BASE_URL}`);
-console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? '✅ Set' : '❌ Not set'}`);
+// Request logging middleware
+app.use((req, res, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`${timestamp} - ${req.method} ${req.originalUrl}`);
 
-// Enhanced CORS for Railway
-const corsOrigins = ['http://localhost:3000', 'http://localhost:5500', 'http://localhost:8000', 'http://127.0.0.1:5500', 'http://127.0.0.1:8000', BASE_URL, 'file://', 'null'];
+  if (req.method !== 'GET') {
+    console.log('Headers:', JSON.stringify(req.headers, null, 2));
+    if (req.body && Object.keys(req.body).length > 0) {
+      // Don't log passwords
+      const logBody = { ...req.body };
+      if (logBody.password) logBody.password = '[HIDDEN]';
+      if (logBody.old_password) logBody.old_password = '[HIDDEN]';
+      if (logBody.new_password) logBody.new_password = '[HIDDEN]';
+      console.log('Body:', JSON.stringify(logBody, null, 2));
+    }
+  }
 
-// Add Railway URLs
-if (RAILWAY_STATIC_URL) corsOrigins.push(RAILWAY_STATIC_URL);
-if (RAILWAY_PUBLIC_DOMAIN) corsOrigins.push(`https://${RAILWAY_PUBLIC_DOMAIN}`);
+  next();
+});
 
-app.use(
-  cors({
-    origin: corsOrigins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  }),
-);
-
-// Body parsing middleware
-app.use(bodyParser.json({ limit: '10mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-
-// Serve static files
+// Static files
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Request logging (development only)
-if (NODE_ENV === 'development') {
-  app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-  });
-}
-
-// Health check with Railway info
+// Health check endpoint
 app.get('/health', (req, res) => {
   res.json({
-    status: 'OK',
-    platform: 'Railway',
+    status: 'healthy',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
     environment: NODE_ENV,
+    platform: 'Railway',
     version: '1.0.0',
-    database: 'SQLite',
-    base_url: BASE_URL,
+    uptime: process.uptime(),
     memory: {
       used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + ' MB',
       total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + ' MB',
@@ -92,10 +92,10 @@ app.get('/', (req, res) => {
     message: '🚂 KostKita API on Railway',
     version: '1.0.0',
     platform: 'Railway',
+    environment: NODE_ENV,
     endpoints: {
       health: '/health',
       api_docs: '/api',
-      dashboard: '/ (web UI)',
       demo_login: {
         username: 'admin',
         password: 'admin123',
@@ -127,6 +127,7 @@ app.get('/api', (req, res) => {
       auth: {
         'POST /api/auth/login': 'Login admin',
         'POST /api/auth/register': 'Register new admin',
+        'GET /api/auth/profile': 'Get profile (protected)',
         'PUT /api/auth/profile': 'Update profile (protected)',
         'PUT /api/auth/change-password': 'Change password (protected)',
       },
@@ -170,8 +171,9 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });
 
-// Error handling
+// Global error handling
 app.use((err, req, res, next) => {
+  console.error('🚨 GLOBAL ERROR HANDLER 🚨');
   console.error('Error:', {
     message: err.message,
     stack: NODE_ENV === 'development' ? err.stack : undefined,
@@ -187,8 +189,32 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+  console.error('🚨 UNCAUGHT EXCEPTION 🚨', err);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🚨 UNHANDLED REJECTION 🚨', reason, 'at promise', promise);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received. Shutting down gracefully...');
+  db.close((err) => {
+    if (err) {
+      console.error('Error closing database:', err.message);
+    } else {
+      console.log('Database connection closed.');
+    }
+    process.exit(0);
+  });
+});
+
 // Start server
-app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log('🚂 KostKita API on Railway Started!');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`📍 URL: ${BASE_URL}`);
@@ -199,3 +225,11 @@ app.listen(PORT, () => {
   console.log(`⏰ Started: ${new Date().toISOString()}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 });
+
+// Handle server errors
+server.on('error', (err) => {
+  console.error('🚨 SERVER ERROR 🚨', err);
+  process.exit(1);
+});
+
+module.exports = app;

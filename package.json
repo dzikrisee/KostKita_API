@@ -6,9 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "build": "npm install",
-    "railway:start": "npm run migrate && npm start",
-    "migrate": "node migrate.js"
+    "build": "npm install"
   },
   "keywords": [
     "kost",
@@ -16,10 +14,11 @@
     "api",
     "railway"
   ],
-  "author": "Your Name",
+  "author": "KostKita Team",
   "license": "ISC",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

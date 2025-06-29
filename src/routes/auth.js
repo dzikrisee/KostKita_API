@@ -39,6 +39,7 @@ router.post('/login', (req, res) => {
         email: user.email,
         full_name: user.full_name,
         role: user.role,
+        profile_photo: user.profile_photo || null,
       },
     });
   });
@@ -78,15 +79,23 @@ router.post('/register', async (req, res) => {
         email,
         full_name,
         role: 'admin',
+        profile_photo: null,
       },
     });
   });
 });
 
-// Update Profile endpoint di routes/auth.js
+// Update Profile - FIXED COMPLETE VERSION
 router.put('/profile', authenticateToken, (req, res) => {
-  const { username, email, full_name, profile_photo } = req.body; // Tambahkan profile_photo
+  const { username, email, full_name, profile_photo } = req.body;
   const userId = req.user.id;
+
+  console.log('=== UPDATE PROFILE REQUEST ===');
+  console.log('User ID:', userId);
+  console.log('Username:', username);
+  console.log('Email:', email);
+  console.log('Full Name:', full_name);
+  console.log('Profile Photo:', profile_photo);
 
   if (!username || !email || !full_name) {
     return res.status(400).json({ error: 'All fields are required' });
@@ -100,13 +109,23 @@ router.put('/profile', authenticateToken, (req, res) => {
 
   db.run(query, [username, email, full_name, profile_photo || null, Date.now(), userId], function (err) {
     if (err) {
+      console.error('=== DATABASE UPDATE ERROR ===', err);
+
       if (err.message.includes('UNIQUE')) {
         return res.status(400).json({ error: 'Username or email already exists' });
       }
+
       return res.status(500).json({ error: err.message });
     }
 
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     const token = jwt.sign({ id: userId, username: username, role: req.user.role }, JWT_SECRET, { expiresIn: '7d' });
+
+    console.log('=== PROFILE UPDATE SUCCESS ===');
+    console.log('Affected rows:', this.changes);
 
     res.json({
       token,
@@ -115,8 +134,36 @@ router.put('/profile', authenticateToken, (req, res) => {
         username: username,
         email: email,
         full_name: full_name,
-        profile_photo: profile_photo, // Tambahkan ini
+        profile_photo: profile_photo || null,
         role: req.user.role,
+      },
+    });
+  });
+});
+
+// Get Profile - untuk debugging
+router.get('/profile', authenticateToken, (req, res) => {
+  const userId = req.user.id;
+
+  const query = 'SELECT id, username, email, full_name, role, profile_photo FROM users WHERE id = ?';
+
+  db.get(query, [userId], (err, user) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role,
+        profile_photo: user.profile_photo || null,
       },
     });
   });
